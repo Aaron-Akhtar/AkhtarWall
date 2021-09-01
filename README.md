@@ -1,5 +1,5 @@
 # AkhtarWall
-AkhtarWall provides Layer-4 DDOS Mitigation, at the Software Level, utilizing the following software:
+AkhtarWall provides Layer-4 DDOS Mitigation (UDP only (for now)), at the Software Level, utilizing the following software:
 
  - (REQUIRED DEPENDENCY) TCPDUMP -> in order to read incoming traffic from target network interface.
  - (REQUIRED DEPENDENCY) IPTABLES -> in order to drop deemed malicious traffic. 
