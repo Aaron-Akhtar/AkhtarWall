@@ -23,17 +23,18 @@ public class Mitigation {
     public static synchronized void mitigate(long endTime){
         while(!hasTimeEnded(endTime)){
             try {
-                final Process dumpProcess = runtime.exec("sudo " + DUMP_COMMAND.trim());
+                final Process dumpProcess = runtime.exec("timeout "+MitigationOptions.mitigationLengthInSeconds+" " + DUMP_COMMAND.trim());
                // System.out.println(DUMP_COMMAND);
 
                 Thread.sleep(900);              // for the memes hehe
 
                 try(BufferedReader reader = new BufferedReader(new InputStreamReader(dumpProcess.getInputStream()))){
                     String dumpLine;
-                    while ((dumpLine = reader.readLine()) != null) {
+                    while (!hasTimeEnded(endTime) && (dumpLine = reader.readLine()) != null) {
                         if (runningHandles >= MitigationOptions.maxConcurrentHandles) continue;
                         runningHandles++;
                         new Thread(new IpHandler(dumpLine)).start();
+                        Thread.sleep(20);
                     }
                 }
 

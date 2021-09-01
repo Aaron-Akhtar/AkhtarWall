@@ -51,9 +51,9 @@ public class AkhtarWall {
 
                     System.out.println(PREFIX + "{ATTACK_ID="+mitigatedAttacks+"} (D)DOS Attack Detected: ["+mbps+"MBps] ["+pps+"pps]");
 
-                    final long mitigationEnd = System.currentTimeMillis() * 300000;
+                    final long mitigationEnd = System.currentTimeMillis() + (MitigationOptions.mitigationLengthInSeconds * 1000);
 
-                    System.out.println(PREFIX + "{ATTACK_ID="+mitigatedAttacks+"} (D)DOS Mitigation Started!");
+                    System.out.println(PREFIX + "{ATTACK_ID="+mitigatedAttacks+"} (D)DOS Mitigation Started For "+MitigationOptions.mitigationLengthInSeconds+"s!");
 
                     Mitigation.mitigate(mitigationEnd);
 
