@@ -4,6 +4,8 @@ AkhtarWall provides Layer-4 DDOS Mitigation, at the Software Level, utilizing th
  - (REQUIRED DEPENDENCY) TCPDUMP -> in order to read incoming traffic from target network interface.
  - (REQUIRED DEPENDENCY) IPTABLES -> in order to drop deemed malicious traffic. 
 
+(Download: https://github.com/Aaron-Akhtar/AkhtarWall/releases/download/1.0/AkhtarWall.jar)
+
 ### How to use AkhtarWall on Debian >
 ```shell
 # To start, install the JRE (Java)
