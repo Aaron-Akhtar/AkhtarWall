@@ -9,9 +9,9 @@ import java.util.StringJoiner;
 
 public class IpHandler implements Runnable {
 
-    private static final int TOO_MANY_PACKETS = 10; // during mitigation period only
+    public static int TOO_MANY_PACKETS = 0; // during mitigation period only
 
-    public static final Map<String, Integer> ips = new HashMap<>();     // will clear after mitigation
+    public static final Map<String, Integer> ips = new HashMap<>();     // will clear after every mitigation iteration
 
     private String dumpLine;
 
@@ -43,8 +43,12 @@ public class IpHandler implements Runnable {
             final String
                     IN_IP_ADDRESS = ip;
 
+            final int
+                    IP_PART_1 = Integer.parseInt(ipParts[0]),
+                    IP_PART_2 = Integer.parseInt(ipParts[1]);
 
-            if (Mitigation.droppedHosts.contains(IN_IP_ADDRESS)){
+
+            if (Mitigation.droppedHosts.contains(IN_IP_ADDRESS) || IP_PART_1 == 10 || (IP_PART_1 == 172 && (IP_PART_2 >= 16 && IP_PART_2 <= 31)) || (IP_PART_1 == 192 && IP_PART_2 == 168)){
                 Mitigation.runningHandles--;
                 return;
             }

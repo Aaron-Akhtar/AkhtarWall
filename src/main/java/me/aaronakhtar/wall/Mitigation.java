@@ -4,6 +4,7 @@ import me.aaronakhtar.wall.threads.IpHandler;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -13,14 +14,19 @@ public class Mitigation {
     public static final List<String> droppedHosts = new ArrayList<>();  // to prevent dupes.
 
 
-    private static final String                         // 'NO_LOCAL_TRAFFIC_DUMP_FILTER' is something on the side im looking to implement - for now, not a priority.
-            NO_LOCAL_TRAFFIC_DUMP_FILTER = "'not (src net (10 or 172.16/12 or 192.168/16) and dst net (10 or 172.16/12 or 192.168/16))'",
-            DUMP_COMMAND = "tcpdump -i "+AkhtarWall.ETH_INTERFACE+" -n udp";
+    private static final String DUMP_COMMAND = "tcpdump -i "+AkhtarWall.ETH_INTERFACE+" -n udp";
 
     public static final Runtime runtime = Runtime.getRuntime();
     public static volatile int runningHandles = 0;
 
+    public static PrintWriter logWriter = null;
+
     public static synchronized void mitigate(long endTime){
+        logWriter = UtilFunctions.getLogNewLogStream();
+        if (logWriter == null){
+            System.out.println(AkhtarWall.PREFIX() + "! Fatal Error !  - unable to create log file stream...");
+            return;
+        }
         while(!hasTimeEnded(endTime)){
             try {
                 final Process dumpProcess = runtime.exec("timeout "+MitigationOptions.mitigationLengthInSeconds+" " + DUMP_COMMAND.trim());
@@ -34,7 +40,7 @@ public class Mitigation {
                         if (runningHandles >= MitigationOptions.maxConcurrentHandles) continue;
                         runningHandles++;
                         new Thread(new IpHandler(dumpLine)).start();
-                        Thread.sleep(20);
+                        Thread.sleep(25);
                     }
                 }
 
