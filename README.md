@@ -1,3 +1,5 @@
+Support Discord: http://akhtarwall-discord.aaronakhtar.me
+
 # AkhtarWall
 AkhtarWall provides Layer-4 DDOS Mitigation (UDP only (for now)), at the Software Level, utilizing the following software:
 
