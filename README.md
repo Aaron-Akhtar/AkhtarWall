@@ -10,7 +10,7 @@ AkhtarWall provides Layer-4 DDOS Mitigation (UDP only (for now)), at the Softwar
 
 During the mitigation period, it will LIVE/CONCURRENTLY transmit logs to a unique file in the directory: 
 ```
-./akhtarwall/logs/%dd-MM-yyyy-HH-mm-ss%.txt
+./AkhtarWall/logs/%dd-MM-yyyy-HH-mm-ss%.txt
 ```
 
 ### How to use AkhtarWall on Debian >
