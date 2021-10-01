@@ -6,7 +6,7 @@ AkhtarWall provides Layer-4 DDOS Mitigation (UDP only (for now)), at the Softwar
 - (REQUIRED DEPENDENCY) TCPDUMP -> in order to read incoming traffic from target network interface.
 - (REQUIRED DEPENDENCY) IPTABLES -> in order to drop deemed malicious traffic.
 
-(Download: https://github.com/Aaron-Akhtar/AkhtarWall/releases/download/2.0/AkhtarWall.jar)
+(Download: https://github.com/Aaron-Akhtar/AkhtarWall/releases/download/3.0/AkhtarWall.jar)
 
 During the mitigation period, it will LIVE/CONCURRENTLY transmit logs to a unique file in the directory: 
 ```
@@ -16,6 +16,9 @@ During the mitigation period, it will LIVE/CONCURRENTLY transmit logs to a uniqu
 
 ### How to use AkhtarWall on Debian >
 ```shell
+# Download AkhtarWall Executable Jar
+wget https://github.com/Aaron-Akhtar/AkhtarWall/releases/download/3.0/AkhtarWall.jar
+
 # To start, install the JRE (Java)
 apt-get install default-jre -y
 
