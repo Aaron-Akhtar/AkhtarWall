@@ -1,6 +1,8 @@
 package me.aaronakhtar.wall;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MitigationOptions {
                                                         // both triggers must be hit in order for mitigation to trigger
@@ -11,8 +13,11 @@ public class MitigationOptions {
             maxConcurrentHandles = 0,
             mitigationLengthInSeconds = 300;
 
+    public static final List<String> blacklistedHosts = new ArrayList<>();
+
+    public static final String MAIN_DIRECTORY = "./AkhtarWall";
     public static final String LOG_DIRECTORY() {
-        final String s = "./AkhtarWall/logs";
+        final String s = MAIN_DIRECTORY + "/logs";
         final File f = new File(s);
         if (!f.isDirectory()) f.mkdirs();
         return s;

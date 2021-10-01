@@ -6,12 +6,12 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 public class Mitigation {
 
     public static final List<String> droppedHosts = new ArrayList<>();  // to prevent dupes.
+    public static final List<Integer> droppedSourcePorts = new ArrayList<>();
 
 
     private static final String DUMP_COMMAND = "tcpdump -i "+AkhtarWall.ETH_INTERFACE+" -n udp";
@@ -19,11 +19,14 @@ public class Mitigation {
     public static final Runtime runtime = Runtime.getRuntime();
     public static volatile int runningHandles = 0;
 
-    public static PrintWriter logWriter = null;
+    public static PrintWriter
+            ipLogWriter = null,
+            sportLogWriter = null;
 
     public static synchronized void mitigate(long endTime){
-        logWriter = UtilFunctions.getLogNewLogStream();
-        if (logWriter == null){
+        ipLogWriter = UtilFunctions.getLogNewLogStream(UtilFunctions.LogType.IP);
+        sportLogWriter = UtilFunctions.getLogNewLogStream(UtilFunctions.LogType.SPORT);
+        if (ipLogWriter == null || sportLogWriter == null){
             System.out.println(AkhtarWall.PREFIX() + "! Fatal Error !  - unable to create log file stream...");
             return;
         }

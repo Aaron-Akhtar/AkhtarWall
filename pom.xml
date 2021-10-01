@@ -6,7 +6,7 @@
 
     <groupId>me.aaronakhtar.wall</groupId>
     <artifactId>AkhtarWall</artifactId>
-    <version>2</version>
+    <version>3</version>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>

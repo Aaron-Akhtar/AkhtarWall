@@ -5,16 +5,21 @@ import me.aaronakhtar.wall.threads.IpHandler;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Enumeration;
 
 public class AkhtarWall {
     private static final SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
 
-    private static final double version = 2.0;
+    private static final double version = 3.0;
     public static String ETH_INTERFACE = "ens3";
+    public static String publicIpv4 = "";
 
     private static final String
             PPS_FILE = "/proc/net/dev",
@@ -29,23 +34,57 @@ public class AkhtarWall {
 
     public static void main(String[] args) {
 
-        if(args.length != 6){
+        if(args.length != 7){
             System.out.println("Warning: AkhtarWall has only been tested on Debian-Based Distributions.");
             System.out.println();
-            System.out.println(AkhtarWall.PREFIX() + "Correct Args: 'java -jar AkhtarWall.jar [NET_INTERFACE] [MAX_THREADS] [MITIGATION_LENGTH_SECONDS] [PPS_TRIGGER] [MBPS_TRIGGER] [MAX_PACKETS_PER_IP]'");
+            System.out.println(AkhtarWall.PREFIX() + "Correct Args: 'java -jar AkhtarWall.jar [NET_INTERFACE] [MAX_THREADS] [MITIGATION_LENGTH_SECONDS] [PPS_TRIGGER] [MBPS_TRIGGER] [MAX_PACKETS_PER_IP] [BLACKLISTED_HOSTS_FILE]'");
 
             return;
         }
 
-        ETH_INTERFACE = args[0];
-        MitigationOptions.maxConcurrentHandles = Integer.parseInt(args[1]);
-        MitigationOptions.mitigationLengthInSeconds = Integer.parseInt(args[2]);
-        MitigationOptions.ppsCap = Long.parseLong(args[3]);
-        MitigationOptions.mbpsCap = Double.parseDouble(args[4]);
-        IpHandler.TOO_MANY_PACKETS = Integer.parseInt(args[5]);
+        try {
+            ETH_INTERFACE = args[0];
+            MitigationOptions.maxConcurrentHandles = Integer.parseInt(args[1]);
+            MitigationOptions.mitigationLengthInSeconds = Integer.parseInt(args[2]);
+            MitigationOptions.ppsCap = Long.parseLong(args[3]);
+            MitigationOptions.mbpsCap = Double.parseDouble(args[4]);
+            IpHandler.TOO_MANY_PACKETS = Integer.parseInt(args[5]);
+            IpHandler.TOO_MANY_SPORT_ENTRIES = 50 * (MitigationOptions.mitigationLengthInSeconds / 10);            // lets assume 30 packets from the same source port are malicious during every 10 seconds.
+
+
+            final Enumeration<InetAddress> inetAddressEnumeration = NetworkInterface.getByName(ETH_INTERFACE).getInetAddresses();
+
+            while(inetAddressEnumeration.hasMoreElements()){
+                final InetAddress inetAddress = inetAddressEnumeration.nextElement();
+
+                if(inetAddress instanceof Inet4Address && !inetAddress.isLoopbackAddress()){
+                    publicIpv4 = inetAddress.getHostAddress();
+                    break;
+                }
+
+            }
 
 
 
+            try(BufferedReader reader = new BufferedReader(new FileReader(new File(args[6])))){
+                String s;
+                while((s = reader.readLine()) != null){
+                    MitigationOptions.blacklistedHosts.add(s);
+                }
+            }
+
+        }catch (Exception e){
+            e.printStackTrace();
+            return;
+        }
+
+        System.out.println();
+        System.out.println(AkhtarWall.PREFIX() + "Settings:");
+        System.out.println(AkhtarWall.PREFIX() + "  Public Ipv4 (interface="+ETH_INTERFACE+"): \""+publicIpv4+"\"");
+        System.out.println(AkhtarWall.PREFIX() + "  Drop Ipv4 After: \""+IpHandler.TOO_MANY_PACKETS+" packets /per mitigation period\"");
+        System.out.println(AkhtarWall.PREFIX() + "  Drop Source Port After: \""+IpHandler.TOO_MANY_SPORT_ENTRIES+" packets /per mitigation period\"");
+        System.out.println(AkhtarWall.PREFIX() + "  Blacklisted Hosts: \""+MitigationOptions.blacklistedHosts.size()+"\"");
+        System.out.println();
 
 
 
@@ -69,6 +108,7 @@ public class AkhtarWall {
                     Mitigation.mitigate(mitigationEnd);
 
                     IpHandler.ips.clear();
+                    IpHandler.srcPorts.clear();
 
 
                     System.out.println(AkhtarWall.PREFIX() + "{ATTACK_ID="+mitigatedAttacks+"} (D)DOS Mitigation Ended: [totalDropped="+Mitigation.droppedHosts.size()+"]");
