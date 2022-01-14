@@ -14,6 +14,7 @@ public class MitigationOptions {
             mitigationLengthInSeconds = 300;
 
     public static final List<String> blacklistedHosts = new ArrayList<>();
+    public static final List<Integer> blacklistedSourcePorts = new ArrayList<>();
 
     public static final String MAIN_DIRECTORY = "./AkhtarWall";
     public static final String LOG_DIRECTORY() {

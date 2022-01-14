@@ -1,6 +1,9 @@
 package me.aaronakhtar.wall;
 
-import me.aaronakhtar.wall.threads.IpHandler;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import me.aaronakhtar.wall.configuration.AkhtarWallConfiguration;
+import me.aaronakhtar.wall.threads.PacketHandler;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -13,19 +16,20 @@ import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.stream.Collectors;
 
 public class AkhtarWall {
     private static final SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
 
-    private static final double version = 3.0;
-    public static String ETH_INTERFACE = "ens3";
+    public static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+
+    private static final double version = 4.0;
+    protected static String NET_INTERFACE = "ens3";
     public static String publicIpv4 = "";
+    public static boolean undrop = true;
 
-    private static final String
-            PPS_FILE = "/proc/net/dev",
-            TOTAL_INCOMING_BYTES_FILE = "/sys/class/net/%s/statistics/rx_bytes";
-
-
+    private static final File PPS_FILE = new File("/proc/net/dev");
+    private static File TOTAL_INCOMING_BYTES_FILE = null;
 
     public static String PREFIX(){
         return "("+sdf.format(new Date())+")[AkhtarWall-"+version+"] ";
@@ -33,26 +37,50 @@ public class AkhtarWall {
 
 
     public static void main(String[] args) {
-
-        if(args.length != 7){
-            System.out.println("Warning: AkhtarWall has only been tested on Debian-Based Distributions.");
+        System.out.println("Warning: AkhtarWall has only been tested on Debian-Based Distributions.");
+        final File jsonConfigFile = new File(AkhtarWallConfiguration.configFilePath);
+        if(!jsonConfigFile.exists()){
             System.out.println();
-            System.out.println(AkhtarWall.PREFIX() + "Correct Args: 'java -jar AkhtarWall.jar [NET_INTERFACE] [MAX_THREADS] [MITIGATION_LENGTH_SECONDS] [PPS_TRIGGER] [MBPS_TRIGGER] [MAX_PACKETS_PER_IP] [BLACKLISTED_HOSTS_FILE]'");
-
+            System.out.println(AkhtarWall.PREFIX() + "Creating configuration file...");
+            if (AkhtarWallConfiguration.createConfigFile()){
+                System.out.println(AkhtarWall.PREFIX() + "Created configuration file ["+jsonConfigFile.getAbsolutePath()+"]...");
+            }else{
+                System.out.println(AkhtarWall.PREFIX() + "Failed creating configuration file...");
+            }
             return;
         }
 
         try {
-            ETH_INTERFACE = args[0];
-            MitigationOptions.maxConcurrentHandles = Integer.parseInt(args[1]);
-            MitigationOptions.mitigationLengthInSeconds = Integer.parseInt(args[2]);
-            MitigationOptions.ppsCap = Long.parseLong(args[3]);
-            MitigationOptions.mbpsCap = Double.parseDouble(args[4]);
-            IpHandler.TOO_MANY_PACKETS = Integer.parseInt(args[5]);
-            IpHandler.TOO_MANY_SPORT_ENTRIES = 50 * (MitigationOptions.mitigationLengthInSeconds / 10);            // lets assume 30 packets from the same source port are malicious during every 10 seconds.
+
+            final AkhtarWallConfiguration configuration = AkhtarWallConfiguration.get();
+
+            if (configuration.isConfigInvalid()){
+                System.out.println(AkhtarWall.PREFIX() + "Problems detected with your configuration...");
+                return;
+            }
+
+            undrop = configuration.shouldRemoveDropsAfterMitigation();
 
 
-            final Enumeration<InetAddress> inetAddressEnumeration = NetworkInterface.getByName(ETH_INTERFACE).getInetAddresses();
+            NET_INTERFACE = configuration.getNetworkInterface();
+            MitigationOptions.maxConcurrentHandles = configuration.getMaxThreads();
+            MitigationOptions.mitigationLengthInSeconds = configuration.getMitigationLengthInSeconds();
+            MitigationOptions.ppsCap = configuration.getPpsTrigger();
+            MitigationOptions.mbpsCap = configuration.getMbpsTrigger();
+            PacketHandler.TOO_MANY_PACKETS = configuration.getMaxPacketsPerIp();
+            PacketHandler.TOO_MANY_SPORT_ENTRIES = configuration.getMaxPacketsPerSourcePort();
+            PacketHandler.TOO_MANY_SAME_PACKET_SIZES = configuration.getMaxSamePacketSizes();
+
+
+            TOTAL_INCOMING_BYTES_FILE = new File(String.format("/sys/class/net/%s/statistics/rx_bytes", NET_INTERFACE));
+
+            if (!PPS_FILE.exists() || !TOTAL_INCOMING_BYTES_FILE.exists()){
+                System.out.println("Error: Cannot located required resources, please use a debian-based operating system...");
+                return;
+            }
+
+
+            final Enumeration<InetAddress> inetAddressEnumeration = NetworkInterface.getByName(NET_INTERFACE).getInetAddresses();
 
             while(inetAddressEnumeration.hasMoreElements()){
                 final InetAddress inetAddress = inetAddressEnumeration.nextElement();
@@ -64,14 +92,11 @@ public class AkhtarWall {
 
             }
 
+            MitigationOptions.blacklistedHosts.addAll(UtilFunctions.readFile(new File(configuration.getBlacklistedHostsFile())));
+            MitigationOptions.blacklistedSourcePorts.addAll(UtilFunctions.readFile(new File(configuration.getBlacklistedSourcePortsFile())).stream().map(Integer::parseInt).collect(Collectors.toList()));
 
 
-            try(BufferedReader reader = new BufferedReader(new FileReader(new File(args[6])))){
-                String s;
-                while((s = reader.readLine()) != null){
-                    MitigationOptions.blacklistedHosts.add(s);
-                }
-            }
+
 
         }catch (Exception e){
             e.printStackTrace();
@@ -80,10 +105,12 @@ public class AkhtarWall {
 
         System.out.println();
         System.out.println(AkhtarWall.PREFIX() + "Settings:");
-        System.out.println(AkhtarWall.PREFIX() + "  Public Ipv4 (interface="+ETH_INTERFACE+"): \""+publicIpv4+"\"");
-        System.out.println(AkhtarWall.PREFIX() + "  Drop Ipv4 After: \""+IpHandler.TOO_MANY_PACKETS+" packets /per mitigation period\"");
-        System.out.println(AkhtarWall.PREFIX() + "  Drop Source Port After: \""+IpHandler.TOO_MANY_SPORT_ENTRIES+" packets /per mitigation period\"");
+        System.out.println(AkhtarWall.PREFIX() + "  Public Ipv4 (interface="+ NET_INTERFACE +"): \""+publicIpv4+"\"");
+        System.out.println(AkhtarWall.PREFIX() + "  Drop Ipv4 After: \""+ PacketHandler.TOO_MANY_PACKETS+" packets /per mitigation period\"");
+        System.out.println(AkhtarWall.PREFIX() + "  Drop Source Port After: \""+ PacketHandler.TOO_MANY_SPORT_ENTRIES+" packets /per mitigation period\"");
         System.out.println(AkhtarWall.PREFIX() + "  Blacklisted Hosts: \""+MitigationOptions.blacklistedHosts.size()+"\"");
+        System.out.println(AkhtarWall.PREFIX() + "  Blacklisted Source Ports: \""+MitigationOptions.blacklistedSourcePorts.size()+"\"");
+
         System.out.println();
 
 
@@ -107,8 +134,8 @@ public class AkhtarWall {
 
                     Mitigation.mitigate(mitigationEnd);
 
-                    IpHandler.ips.clear();
-                    IpHandler.srcPorts.clear();
+                    PacketHandler.ips.clear();
+                    PacketHandler.srcPorts.clear();
 
 
                     System.out.println(AkhtarWall.PREFIX() + "{ATTACK_ID="+mitigatedAttacks+"} (D)DOS Mitigation Ended: [totalDropped="+Mitigation.droppedHosts.size()+"]");
@@ -136,10 +163,10 @@ public class AkhtarWall {
 
     private static double getCurrentIncomingMbps(){
         try{
-            final long current_total_bytes = Long.parseLong(Files.readAllLines(Paths.get(new File(String.format(TOTAL_INCOMING_BYTES_FILE, ETH_INTERFACE)).toURI())).get(0));
+            final long current_total_bytes = Long.parseLong(Files.readAllLines(Paths.get(TOTAL_INCOMING_BYTES_FILE.toURI())).get(0));
             Thread.sleep(1000); // wait 1 second to get PER SECOND rate.
             final double current_mbps =
-                    ((current_total_bytes - Long.parseLong(Files.readAllLines(Paths.get(new File(String.format(TOTAL_INCOMING_BYTES_FILE, ETH_INTERFACE)).toURI())).get(0))) / 125000) * (-1);
+                    ((current_total_bytes - Long.parseLong(Files.readAllLines(Paths.get(TOTAL_INCOMING_BYTES_FILE.toURI())).get(0))) / 125000) * (-1);
             return current_mbps;
         }catch (Exception e) {}
         return 0;
@@ -150,7 +177,7 @@ public class AkhtarWall {
             try(BufferedReader reader = new BufferedReader(new FileReader(PPS_FILE))){
                 String s;
                 while((s = reader.readLine()) != null){
-                    if (s.contains(ETH_INTERFACE)){
+                    if (s.contains(NET_INTERFACE)){
                         return s.split(":")[1].split(" ")[2];
                     }
                 }
