@@ -45,7 +45,11 @@ public class AkhtarWallConfiguration {
     private int     maxSamePacketSizes = 250;
     private String  blacklistedSourcePortsFile = "";
     private String  blacklistedHostsFile = "";
-    private boolean removeDropsAfterMitigation = true;
+    private boolean shouldRemoveDropsAfterMitigation = true;
+    private boolean shouldDisableHostDropping = false;
+    private boolean shouldDisableSourcePortDropping = false;
+    private boolean shouldDisablePacketSizeDropping = false;
+
 
     public boolean isConfigInvalid(){
         return networkInterface.isEmpty() || blacklistedHostsFile.isEmpty() || maxThreads == 0;
@@ -83,6 +87,22 @@ public class AkhtarWallConfiguration {
         return maxSamePacketSizes;
     }
 
+    public boolean isShouldRemoveDropsAfterMitigation() {
+        return shouldRemoveDropsAfterMitigation;
+    }
+
+    public boolean isShouldDisableHostDropping() {
+        return shouldDisableHostDropping;
+    }
+
+    public boolean isShouldDisableSourcePortDropping() {
+        return shouldDisableSourcePortDropping;
+    }
+
+    public boolean isShouldDisablePacketSizeDropping() {
+        return shouldDisablePacketSizeDropping;
+    }
+
     public String getBlacklistedSourcePortsFile() {
         return blacklistedSourcePortsFile;
     }
@@ -91,7 +111,6 @@ public class AkhtarWallConfiguration {
         return blacklistedHostsFile;
     }
 
-    public boolean shouldRemoveDropsAfterMitigation() {
-        return removeDropsAfterMitigation;
-    }
+
+
 }

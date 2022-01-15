@@ -26,7 +26,8 @@ public class AkhtarWall {
     private static final double version = 4.0;
     protected static String NET_INTERFACE = "ens3";
     public static String publicIpv4 = "";
-    public static boolean undrop = true;
+    public static AkhtarWallConfiguration configuration = null;
+
 
     private static final File PPS_FILE = new File("/proc/net/dev");
     private static File TOTAL_INCOMING_BYTES_FILE = null;
@@ -52,15 +53,12 @@ public class AkhtarWall {
 
         try {
 
-            final AkhtarWallConfiguration configuration = AkhtarWallConfiguration.get();
+            configuration = AkhtarWallConfiguration.get();
 
             if (configuration.isConfigInvalid()){
                 System.out.println(AkhtarWall.PREFIX() + "Problems detected with your configuration...");
                 return;
             }
-
-            undrop = configuration.shouldRemoveDropsAfterMitigation();
-
 
             NET_INTERFACE = configuration.getNetworkInterface();
             MitigationOptions.maxConcurrentHandles = configuration.getMaxThreads();
@@ -134,8 +132,9 @@ public class AkhtarWall {
 
                     Mitigation.mitigate(mitigationEnd);
 
-                    PacketHandler.ips.clear();
-                    PacketHandler.srcPorts.clear();
+                    if (!configuration.isShouldDisableHostDropping()) PacketHandler.ips.clear();
+                    if (!configuration.isShouldDisableSourcePortDropping()) PacketHandler.srcPorts.clear();
+                    if (!configuration.isShouldDisablePacketSizeDropping()) PacketHandler.packetSizes.clear();
 
 
                     System.out.println(AkhtarWall.PREFIX() + "{ATTACK_ID="+mitigatedAttacks+"} (D)DOS Mitigation Ended: [totalDropped="+Mitigation.droppedHosts.size()+"]");

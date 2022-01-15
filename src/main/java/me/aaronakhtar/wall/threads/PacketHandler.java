@@ -8,12 +8,8 @@ import me.aaronakhtar.wall.UtilFunctions;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.StringJoiner;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class PacketHandler implements Runnable {
-
-    private static final Pattern packetSizePattern = Pattern.compile("\\((.*?)\\)"); // get value x :  - "(x)"
 
     public static int
             TOO_MANY_PACKETS = 0,
@@ -35,7 +31,7 @@ public class PacketHandler implements Runnable {
 
     @Override
     public void run() {
-        try{
+        try {
             boolean isSourcePortBlacklisted = false;
             boolean skipPacketSize = false;
             String ip;
@@ -52,32 +48,32 @@ public class PacketHandler implements Runnable {
             if (ipParts.length > 4) {
                 for (String x : ipParts) {
                     xxF++;
-                    if (xxF == 5){
+                    if (xxF == 5) {
                         sourcePort = Integer.parseInt(x);
-                    }else {
+                    } else {
                         stringJoiner.add(x);
                     }
                 }
 
                 ip = stringJoiner.toString();
 
-            }else{
+            } else {
                 ip = parts[2];
             }
 
             final String
                     IN_IP_ADDRESS = ip;
 
-            if (IN_IP_ADDRESS.equals(AkhtarWall.publicIpv4)){
+            if (IN_IP_ADDRESS.equals(AkhtarWall.publicIpv4)) {
                 return;
             }
 
-            if (MitigationOptions.blacklistedHosts.contains(IN_IP_ADDRESS)){
+            if (MitigationOptions.blacklistedHosts.contains(IN_IP_ADDRESS)) {
                 return;
             }
 
 
-            if (Mitigation.droppedHosts.contains(IN_IP_ADDRESS) || IP_PART_1 == 10 || (IP_PART_1 == 172 && (IP_PART_2 >= 16 && IP_PART_2 <= 31)) || (IP_PART_1 == 192 && IP_PART_2 == 168)){
+            if (Mitigation.droppedHosts.contains(IN_IP_ADDRESS) || IP_PART_1 == 10 || (IP_PART_1 == 172 && (IP_PART_2 >= 16 && IP_PART_2 <= 31)) || (IP_PART_1 == 192 && IP_PART_2 == 168)) {
                 return;
             }
 
@@ -98,17 +94,18 @@ public class PacketHandler implements Runnable {
                 }
             }
 
-          //  System.out.println("Same Sizes ("+packetSize+") ("+isBadLength+") : " + packetSizes.get(packetSize));
+            //  System.out.println("Same Sizes ("+packetSize+") ("+isBadLength+") : " + packetSizes.get(packetSize));
             if (MitigationOptions.blacklistedSourcePorts.contains(sourcePort)) isSourcePortBlacklisted = true;
 
-
-            if (ips.get(IN_IP_ADDRESS) == null){
-                ips.put(IN_IP_ADDRESS, 0);
-            }else{
-                ips.put(IN_IP_ADDRESS, ips.get(IN_IP_ADDRESS) + 1);
+            if (!AkhtarWall.configuration.isShouldDisableHostDropping()) {
+                if (ips.get(IN_IP_ADDRESS) == null) {
+                    ips.put(IN_IP_ADDRESS, 0);
+                } else {
+                    ips.put(IN_IP_ADDRESS, ips.get(IN_IP_ADDRESS) + 1);
+                }
             }
 
-            if (!isSourcePortBlacklisted) {
+            if (!!AkhtarWall.configuration.isShouldDisableSourcePortDropping() && !isSourcePortBlacklisted) {
                 if (srcPorts.get(sourcePort) == null) {
                     srcPorts.put(sourcePort, 0);
                 } else {
@@ -142,7 +139,7 @@ public class PacketHandler implements Runnable {
                 //return;
             }
 
-            if (!skipPacketSize) {
+            if (!skipPacketSize && !AkhtarWall.configuration.isShouldDisablePacketSizeDropping()) {
                 if (totalPacketSizeEntries >= TOO_MANY_SAME_PACKET_SIZES) {
                     UtilFunctions.dropPacketSize(packetSize, false);
                 }

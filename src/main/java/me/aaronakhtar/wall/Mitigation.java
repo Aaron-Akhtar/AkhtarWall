@@ -72,41 +72,45 @@ public class Mitigation {
             System.out.println(AkhtarWall.PREFIX() + "Packet handlers have finished...");
         }
 
-        if (AkhtarWall.undrop) {
+        if (AkhtarWall.configuration.isShouldRemoveDropsAfterMitigation()) {
             final List<String> undroppedHosts = new ArrayList<>();
             final List<Integer>
                     undroppedSourcePorts = new ArrayList<>(),
                     undroppedPacketSizes = new ArrayList<>();
             try {
-                for (String host : droppedHosts) {
-                    while (runningHandles >= MitigationOptions.maxConcurrentHandles) ;
-                    runningHandles++;
-                    new Thread(new UndropThread(host, UtilFunctions.LogType.IP)).start();
-                    undroppedHosts.add(host);
-                    Thread.sleep(25);
+                if (!AkhtarWall.configuration.isShouldDisableHostDropping()) {
+                    for (String host : droppedHosts) {
+                        while (runningHandles >= MitigationOptions.maxConcurrentHandles) ;
+                        runningHandles++;
+                        new Thread(new UndropThread(host, UtilFunctions.LogType.IP)).start();
+                        undroppedHosts.add(host);
+                        Thread.sleep(25);
+                    }
+                    while (runningHandles != 0) ;
+                    droppedHosts.removeAll(undroppedHosts);
                 }
-                while (runningHandles != 0) ;
-                droppedHosts.removeAll(undroppedHosts);
-
-                for (int port : droppedSourcePorts) {
-                    while (runningHandles >= MitigationOptions.maxConcurrentHandles) ;
-                    runningHandles++;
-                    new Thread(new UndropThread(port, UtilFunctions.LogType.SPORT)).start();
-                    undroppedSourcePorts.add(port);
-                    Thread.sleep(25);
+                if (!AkhtarWall.configuration.isShouldDisableSourcePortDropping()) {
+                    for (int port : droppedSourcePorts) {
+                        while (runningHandles >= MitigationOptions.maxConcurrentHandles) ;
+                        runningHandles++;
+                        new Thread(new UndropThread(port, UtilFunctions.LogType.SPORT)).start();
+                        undroppedSourcePorts.add(port);
+                        Thread.sleep(25);
+                    }
+                    while (runningHandles != 0) ;
+                    droppedSourcePorts.removeAll(undroppedSourcePorts);
                 }
-                while (runningHandles != 0) ;
-                droppedSourcePorts.removeAll(undroppedSourcePorts);
-
-                for (int size : droppedPacketSizes) {
-                    while (runningHandles >= MitigationOptions.maxConcurrentHandles) ;
-                    runningHandles++;
-                    new Thread(new UndropThread(size, UtilFunctions.LogType.PSIZE)).start();
-                    undroppedPacketSizes.add(size);
-                    Thread.sleep(25);
+                if (!AkhtarWall.configuration.isShouldDisablePacketSizeDropping()) {
+                    for (int size : droppedPacketSizes) {
+                        while (runningHandles >= MitigationOptions.maxConcurrentHandles) ;
+                        runningHandles++;
+                        new Thread(new UndropThread(size, UtilFunctions.LogType.PSIZE)).start();
+                        undroppedPacketSizes.add(size);
+                        Thread.sleep(25);
+                    }
+                    while (runningHandles != 0) ;
+                    droppedPacketSizes.removeAll(undroppedPacketSizes);
                 }
-                while (runningHandles != 0) ;
-                droppedPacketSizes.removeAll(undroppedPacketSizes);
             }catch (InterruptedException e){
 
             }
