@@ -1,6 +1,8 @@
-Support Discord: http://akhtarwall-discord.aaronakhtar.me
-
 # AkhtarWall
+
+
+*VERSION 4 OF AKHTARWALL IS CURRENTLY NOT IN PRODUCTION RELEASE.*
+
 AkhtarWall provides Layer-4 DDOS Mitigation (UDP only (for now)), at the Software Level, utilizing the following software:
 
 - (REQUIRED DEPENDENCY) TCPDUMP -> in order to read incoming traffic from target network interface.
